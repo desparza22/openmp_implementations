@@ -1,0 +1,3 @@
+Trace files contain the sequence of stores S and loads L from the executables in their directory.
+
+Format: thread_id <S/L>: <address>

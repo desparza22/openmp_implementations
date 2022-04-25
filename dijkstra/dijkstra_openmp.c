@@ -3,7 +3,8 @@
 # include <time.h>
 # include <omp.h>
 
-# define NV 6
+# define NV 800
+# define PERCENT_CONNECTEDNESS 10
 
 int main ( int argc, char **argv );
 int *dijkstra_distance ( int ohd[NV][NV] );
@@ -55,7 +56,8 @@ int main ( int argc, char **argv )
   int *mind;
   int ohd[NV][NV];
 
-  timestamp ( );
+
+  /*timestamp ( );
   fprintf ( stdout, "\n" );
   fprintf ( stdout, "DIJKSTRA_OPENMP\n" );
   fprintf ( stdout, "  C version\n" );
@@ -65,7 +67,7 @@ int main ( int argc, char **argv )
   fprintf ( stdout, "\n" );
   fprintf ( stdout, "  Although a very small example is considered, we\n" );
   fprintf ( stdout, "  demonstrate the use of OpenMP directives for\n" );
-  fprintf ( stdout, "  parallel execution.\n" );
+  fprintf ( stdout, "  parallel execution.\n" );*/
 /*
   Initialize the problem data.
 */
@@ -73,10 +75,10 @@ int main ( int argc, char **argv )
 /*
   Print the distance matrix.
 */
-  fprintf ( stdout, "\n" );
+/*  fprintf ( stdout, "\n" );
   fprintf ( stdout, "  Distance matrix:\n" );
-  fprintf ( stdout, "\n" );
-  for ( i = 0; i < NV; i++ )
+  fprintf ( stdout, "\n" );*/
+  /*for ( i = 0; i < NV; i++ )
   {
     for ( j = 0; j < NV; j++ )
     {
@@ -90,7 +92,7 @@ int main ( int argc, char **argv )
       }
     }
     fprintf ( stdout, "\n" );
-  }
+  }*/
 /*
   Carry out the algorithm.
 */
@@ -98,13 +100,13 @@ int main ( int argc, char **argv )
 /*
   Print the results.
 */
-  fprintf ( stdout, "\n" );
+  /* PRINTING fprintf ( stdout, "\n" );
   fprintf ( stdout, "  Minimum distances from node 0:\n");
   fprintf ( stdout, "\n" );
   for ( i = 0; i < NV; i++ )
   {
     fprintf ( stdout, "  %2d  %2d\n", i, mind[i] );
-  }
+    }*/
 /*
   Free memory.
 */
@@ -112,12 +114,12 @@ int main ( int argc, char **argv )
 /*
   Terminate.
 */
-  fprintf ( stdout, "\n" );
+  /*fprintf ( stdout, "\n" );
   fprintf ( stdout, "DIJKSTRA_OPENMP\n" );
   fprintf ( stdout, "  Normal end of execution.\n" );
 
   fprintf ( stdout, "\n" );
-  timestamp ( );
+  timestamp ( );*/
 
   return 0;
 }
@@ -215,13 +217,13 @@ int *dijkstra_distance ( int ohd[NV][NV]  )
   The SINGLE directive means that the block is to be executed by only
   one thread, and that thread will be whichever one gets here first.
 */
-    # pragma omp single
+    /* PRINTING # pragma omp single
     {
       printf ( "\n" );
       printf ( "  P%d: Parallel region begins with %d threads\n", my_id, nth );
       printf ( "\n" );
     }
-    fprintf ( stdout, "  P%d:  First=%d  Last=%d\n", my_id, my_first, my_last );
+    fprintf ( stdout, "  P%d:  First=%d  Last=%d\n", my_id, my_first, my_last );*/
 
     for ( my_step = 1; my_step < NV; my_step++ )
     {
@@ -231,7 +233,9 @@ int *dijkstra_distance ( int ohd[NV][NV]  )
 */
       # pragma omp single 
       {
+	printf("%d S: %p\n", my_id, &md);
         md = i4_huge;
+	printf("%d S: %p\n", my_id, &mv);
         mv = -1; 
       }
 /*
@@ -245,9 +249,12 @@ int *dijkstra_distance ( int ohd[NV][NV]  )
 */
       # pragma omp critical
       {
+	printf("%d L: %p\n", my_id, &md);
         if ( my_md < md )  
         {
+	  printf("%d S: %p\n", my_id, &md);
           md = my_md;
+	  printf("%d S: %p\n", my_id, &mv);
           mv = my_mv;
         }
       }
@@ -266,10 +273,13 @@ int *dijkstra_distance ( int ohd[NV][NV]  )
 */
       # pragma omp single 
       {
+	printf("%d L: %p\n", my_id, &mv);
         if ( mv != - 1 )
         {
+	  printf("%d L: %p\n", my_id, &mv);
+	  printf("%d S: %p\n", my_id, &connected[mv]);
           connected[mv] = 1;
-          printf ( "  P%d: Connecting node %d.\n", my_id, mv );
+          // PRINTING printf ( "  P%d: Connecting node %d.\n", my_id, mv );
         }
       }
 /*
@@ -282,6 +292,7 @@ int *dijkstra_distance ( int ohd[NV][NV]  )
   by checking to see whether the trip from 0 to MV plus the step
   from MV to a node is closer than the current record.
 */
+      printf("%d L: %p\n", my_id, &mv);
       if ( mv != -1 )
       {
         update_mind ( my_first, my_last, mv, connected, ohd, mind );
@@ -295,11 +306,11 @@ int *dijkstra_distance ( int ohd[NV][NV]  )
 /*
   Once all the nodes have been connected, we can exit.
 */
-    # pragma omp single
+    /* PRINTING # pragma omp single
     {
       printf ( "\n" );
       printf ( "  P%d: Exiting parallel region.\n", my_id );
-    }
+    }*/
   }
 
   free ( connected );
@@ -347,6 +358,7 @@ void find_nearest ( int s, int e, int mind[NV], int connected[NV], int *d,
     S to E.
 */
 {
+  int my_id = omp_get_thread_num();
   int i;
   int i4_huge = 2147483647;
 
@@ -355,8 +367,11 @@ void find_nearest ( int s, int e, int mind[NV], int connected[NV], int *d,
 
   for ( i = s; i <= e; i++ )
   {
+    printf("%d L: %p\n", my_id, &connected[i]);
+    printf("%d L: %p\n", my_id, &mind[i]);
     if ( !connected[i] && ( mind[i] < *d ) )
     {
+      printf("%d L: %p\n", my_id, &mind[i]);
       *d = mind[i];
       *v = i;
     }
@@ -415,6 +430,29 @@ void init ( int ohd[NV][NV] )
   int i4_huge = 2147483647;
   int j;
 
+  int max_weight = 800;
+  int weight_to_last = NV * max_weight;
+  srand(0);
+  for(i = 0; i < NV - 1; i++) {
+    for(j = i + 1; j < NV - 1; j++) {
+
+      if(i == j) {
+	ohd[i][j] = 0;
+
+      } else {
+	if((rand() % 100) < PERCENT_CONNECTEDNESS) {
+	  ohd[i][j] = ohd[j][i] = rand() % max_weight;
+
+	} else {
+	  ohd[i][j] = ohd[j][i] = i4_huge;
+	}
+      }
+    }
+    //Connect every node to the last node to enrure connectedness
+    ohd[i][NV-1] = ohd[NV-1][i] = weight_to_last;
+  }
+
+  /*Old generation method
   for ( i = 0; i < NV; i++ )  
   {
     for ( j = 0; j < NV; j++ )
@@ -436,7 +474,7 @@ void init ( int ohd[NV][NV] )
   ohd[1][4] = ohd[4][1] = 25;
   ohd[2][3] = ohd[3][2] = 100;
   ohd[1][5] = ohd[5][1] = 6;
-  ohd[4][5] = ohd[5][4] = 8;
+  ohd[4][5] = ohd[5][4] = 8;*/
 
   return;
 }
@@ -537,17 +575,26 @@ void update_mind ( int s, int e, int mv, int connected[NV], int ohd[NV][NV],
     E have been updated.
 */
 {
+  int my_id = omp_get_thread_num();
   int i;
   int i4_huge = 2147483647;
-
+  printf("%d L: %p\n", my_id, &mv);
+  printf("%d L: %p\n", my_id, &mind[mv]);
+  
   for ( i = s; i <= e; i++ )
   {
+    printf("%d L: %p\n", my_id, &connected[i]);
     if ( !connected[i] )
     {
+      printf("%d L: %p\n", my_id, &ohd[mv][i]);
       if ( ohd[mv][i] < i4_huge )
       {
+	printf("%d L: %p\n", my_id, &ohd[mv][i]);
+	printf("%d L: %p\n", my_id, &mind[i]);
         if ( mind[mv] + ohd[mv][i] < mind[i] )  
         {
+	  printf("%d L: %p\n", my_id, &ohd[mv][i]);
+	  printf("%d S: %p\n", my_id, &mind[i]);
           mind[i] = mind[mv] + ohd[mv][i];
         }
       }

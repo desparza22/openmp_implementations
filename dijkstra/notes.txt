@@ -1,0 +1,3 @@
+
+
+Seems wasteful that each thread operates on such a small portion at a time... but previous iterations seems necessary for next.
