@@ -1,1 +1,0 @@
-python3 matrix_view.py dijkstra/trace.txt dijkstra/matrix.csv 0 -1 10

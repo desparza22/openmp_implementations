@@ -210,7 +210,7 @@ int *dijkstra_distance ( int ohd[NV][NV]  )
   shared ( connected, md, mind, mv, nth, ohd )
   {
     my_id = omp_get_thread_num ( );
-    nth = omp_get_num_threads ( ); 
+    nth = omp_get_num_threads ( );
     my_first =   (   my_id       * NV ) / nth;
     my_last  =   ( ( my_id + 1 ) * NV ) / nth - 1;
 /*

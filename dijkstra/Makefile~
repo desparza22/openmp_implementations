@@ -1,0 +1,105 @@
+
+.PHONY: open_matrix \
+	dijkstra \
+	dijkstra_trace_8 dijkstra_trace_16 \
+	dijkstra_trace_32 dijkstra_trace_64 \
+	dijkstra_matrix_8 dijkstra_matrix_16 \
+	dijkstra_matrix_32 dijkstra_matrix_64 \
+	all \
+	clean
+
+all: dijkstra \
+	dijkstra_trace_8 dijkstra_trace_16 \
+	dijkstra_trace_32 dijkstra_trace_64 \
+	\
+	dijkstra_matrix_8 dijkstra_matrix_16 \
+	dijkstra_matrix_32 dijkstra_matrix_64
+
+dijkstra: dijkstra_openmp.c
+	gcc -fopenmp -o dijkstra_openmp dijkstra_openmp.c
+
+
+trace8: dijkstra
+	OMP_NUM_THREADS=8
+	export OMP_NUM_THREADS
+	dijkstra_openmp > trace8
+
+
+trace16: dijkstra
+	OMP_NUM_THREADS=16
+	export OMP_NUM_THREADS
+	dijkstra_openmp > trace16
+
+
+trace32: dijkstra
+	OMP_NUM_THREADS=32
+	export OMP_NUM_THREADS
+	dijkstra_openmp > trace32
+
+
+trace64: dijkstra
+	OMP_NUM_THREADS=64
+	export OMP_NUM_THREADS
+	dijkstra_openmp > trace64
+
+matrix5_8.csv:
+	python3 ../matrix_view.py \
+	trace8.txt matrix5_8.csv 0 -1 5 8
+
+matrix10_8.csv:
+	python3 ../matrix_view.py \
+	trace8.txt matrix10_8.csv 0 -1 10 8
+
+matrix20_8.csv:
+	python3 ../matrix_view.py \
+	trace8.txt matrix20_8.csv 0 -1 20 8
+
+dijkstra_matrix_8: matrix5_8.csv matrix10_8.csv matrix20_8.csv
+
+matrix5_16.csv:
+	python3 ../matrix_view.py \
+	trace16.txt matrix5_16.csv 0 -1 5 16
+
+matrix10_16.csv:
+	python3 ../matrix_view.py \
+	trace16.txt matrix10_16.csv 0 -1 10 16
+
+matrix20_16.csv:
+	python3 ../matrix_view.py \
+	trace16.txt matrix20_16.csv 0 -1 20 16
+
+dijkstra_matrix_16: matrix5_16.csv matrix10_16.csv matrix20_16.csv
+
+
+matrix5_32.csv:
+	python3 ../matrix_view.py \
+	trace32.txt matrix5_32.csv 0 -1 5 32
+
+matrix10_32.csv:
+	python3 ../matrix_view.py \
+	trace32.txt matrix10_32.csv 0 -1 10 32
+
+matrix20_32.csv:
+	python3 ../matrix_view.py \
+	trace32.txt matrix20_32.csv 0 -1 20 32
+
+dijkstra_matrix_32: matrix5_32.csv matrix10_32.csv matrix20_32.csv
+
+matrix5_64.csv:
+	python3 ../matrix_view.py \
+	trace64.txt matrix5_64.csv 0 -1 5 64
+
+matrix10_64.csv:
+	python3 ../matrix_view.py \
+	trace64.txt matrix10_64.csv 0 -1 10 64
+
+matrix20_64.csv:
+	python3 ../matrix_view.py \
+	trace64.txt matrix20_64.csv 0 -1 20 64
+
+
+dijkstra_matrix_64: matrix5_64.csv matrix10_64.csv matrix20_64.csv
+
+
+clean:
+	rm -f dijkstra_openmp
