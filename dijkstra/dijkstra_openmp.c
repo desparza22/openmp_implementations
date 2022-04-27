@@ -233,9 +233,9 @@ int *dijkstra_distance ( int ohd[NV][NV]  )
 */
       # pragma omp single 
       {
-	printf("%d S: %p\n", my_id, &md);
+	printf("0 S: %p\n", &md);
         md = i4_huge;
-	printf("%d S: %p\n", my_id, &mv);
+	printf("0 S: %p\n", &mv);
         mv = -1; 
       }
 /*
@@ -273,11 +273,11 @@ int *dijkstra_distance ( int ohd[NV][NV]  )
 */
       # pragma omp single 
       {
-	printf("%d L: %p\n", my_id, &mv);
+	printf("0 L: %p\n", &mv);
         if ( mv != - 1 )
         {
-	  printf("%d L: %p\n", my_id, &mv);
-	  printf("%d S: %p\n", my_id, &connected[mv]);
+	  printf("0 L: %p\n", &mv);
+	  printf("0 S: %p\n", &connected[mv]);
           connected[mv] = 1;
           // PRINTING printf ( "  P%d: Connecting node %d.\n", my_id, mv );
         }
