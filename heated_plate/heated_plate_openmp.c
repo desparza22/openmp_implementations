@@ -117,8 +117,8 @@ int main ( int argc, char *argv[] )
     Local, double W[M][N], the solution computed at the latest iteration.
 */
 {
-# define M 500
-# define N 500
+# define M 30
+# define N 30
 
   double diff;
   double epsilon = 0.001;
@@ -155,28 +155,28 @@ int main ( int argc, char *argv[] )
 #pragma omp for
     for ( i = 1; i < M - 1; i++ )
     {
-      int thread = 0 / n_range;
+      int thread = calc_thread(M, N, i, 0);
       printf("%d S: %p\n", thread, &w[i][0]);
       w[i][0] = 100.0;
     }
 #pragma omp for
     for ( i = 1; i < M - 1; i++ )
     {
-      int thread = (N-1) / n_range;
+      int thread = calc_thread(M, N, i, N-1);
       printf("%d S: %p\n", thread, &w[i][N-1]);
       w[i][N-1] = 100.0;
     }
 #pragma omp for
     for ( j = 0; j < N; j++ )
     {
-      int thread = j / n_range;
+      int thread = calc_thread(M, N, M-1, j);
       printf("%d S: %p\n", thread, &w[M-1][j]);
       w[M-1][j] = 100.0;
     }
 #pragma omp for
     for ( j = 0; j < N; j++ )
     {
-      int thread = j / n_range;
+      int thread = calc_thread(M, N, 0, j);
       printf("%d S: %p\n", thread, &w[0][j]);
       w[0][j] = 0.0;
     }
@@ -187,8 +187,8 @@ int main ( int argc, char *argv[] )
 #pragma omp for reduction ( + : mean )
     for ( i = 1; i < M - 1; i++ )
     {
-      int thread_1 = 0 / n_range;
-      int thread_2 = (N-1) / n_range;
+      int thread_1 = calc_thread(M, N, i, 0);
+      int thread_2 = calc_thread(M, N, i, N-1);
       printf("%d L: %p\n", thread_1, &w[i][0]);
       printf("%d L: %p\n", thread_2, &w[i][N-1]);
       mean = mean + w[i][0] + w[i][N-1];
@@ -196,9 +196,10 @@ int main ( int argc, char *argv[] )
 #pragma omp for reduction ( + : mean )
     for ( j = 0; j < N; j++ )
     {
-      int thread = j / n_range;
-      printf("%d L: %p\n", thread, &w[M-1][j]);
-      printf("%d L: %p\n", thread, &w[0][j]);
+      int thread_1 = calc_thread(M, N, M-1, j);
+      int thread_2 = calc_thread(M, N, 0, j);
+      printf("%d L: %p\n", thread_1, &w[M-1][j]);
+      printf("%d L: %p\n", thread_2, &w[0][j]);
       mean = mean + w[M-1][j] + w[0][j];
     }
   }
@@ -221,8 +222,9 @@ int main ( int argc, char *argv[] )
     {
       for ( j = 1; j < N - 1; j++ )
       {
-	int thread = j / n_range;
-	printf("%d S: %p\n", &w[i][j]);
+	int thread = calc_thread(M, N, i, j);
+	printf("%d L: %p\n", thread, &mean);
+	printf("%d S: %p\n", thread, &w[i][j]);
 	w[i][j] = mean;
       }
     }
@@ -239,8 +241,9 @@ int main ( int argc, char *argv[] )
   wtime = omp_get_wtime ( );*/
 
   diff = epsilon;
-
-  while ( epsilon <= diff )
+  int max_iter = 500;
+  
+  while ( iterations < max_iter )
   {
 # pragma omp parallel shared ( u, w ) private ( i, j )
     {
@@ -252,6 +255,9 @@ int main ( int argc, char *argv[] )
       {
         for ( j = 0; j < N; j++ )
         {
+	  int thread = calc_thread(M, N, i, j);
+	  printf("%d L: %p\n", thread, &w[i][j]);
+	  printf("%d S: %p\n", thread, &u[i][j]);
           u[i][j] = w[i][j];
         }
       }
@@ -264,6 +270,12 @@ int main ( int argc, char *argv[] )
       {
         for ( j = 1; j < N - 1; j++ )
         {
+	  int thread = calc_thread(M, N, i, j);
+	  printf("%d L: %p\n", thread, &u[i-1][j]);
+	  printf("%d L: %p\n", thread, &u[i+1][j]);
+	  printf("%d L: %p\n", thread, &u[i][j-1]);
+	  printf("%d L: %p\n", thread, &u[i][j+1]);
+	  printf("%d S: %p\n", thread, &w[i][j]);
           w[i][j] = ( u[i-1][j] + u[i+1][j] + u[i][j-1] + u[i][j+1] ) / 4.0;
         }
       }
@@ -284,6 +296,9 @@ int main ( int argc, char *argv[] )
       {
         for ( j = 1; j < N - 1; j++ )
         {
+	  int thread = calc_thread(M, N, i, j);
+	  printf("%d L: %p\n", thread, &w[i][j]);
+	  printf("%d L: %p\n", thread, &u[i][j]);
           if ( my_diff < fabs ( w[i][j] - u[i][j] ) )
           {
             my_diff = fabs ( w[i][j] - u[i][j] );
@@ -292,33 +307,35 @@ int main ( int argc, char *argv[] )
       }
 # pragma omp critical
       {
+	printf("%d L: %p\n", omp_get_thread_num(), &diff);
         if ( diff < my_diff )
         {
+	  printf("%d S: %p\n", omp_get_thread_num(), &diff);
           diff = my_diff;
         }
       }
     }
 
     iterations++;
-    if ( iterations == iterations_print )
+    /*if ( iterations == iterations_print )
     {
       printf ( "  %8d  %f\n", iterations, diff );
       iterations_print = 2 * iterations_print;
-    }
+    }*/
   } 
-  wtime = omp_get_wtime ( ) - wtime;
+  /*wtime = omp_get_wtime ( ) - wtime;
 
   printf ( "\n" );
   printf ( "  %8d  %f\n", iterations, diff );
   printf ( "\n" );
   printf ( "  Error tolerance achieved.\n" );
-  printf ( "  Wallclock time = %f\n", wtime );
+  printf ( "  Wallclock time = %f\n", wtime );*/
 /*
   Terminate.
 */
-  printf ( "\n" );
+  /*printf ( "\n" );
   printf ( "HEATED_PLATE_OPENMP:\n" );
-  printf ( "  Normal end of execution.\n" );
+  printf ( "  Normal end of execution.\n" );*/
 
   return 0;
 
