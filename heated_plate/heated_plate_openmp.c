@@ -4,8 +4,22 @@
 # include <omp.h>
 
 int main ( int argc, char *argv[] );
+int calc_thread(int M, int N, int i, int j);
 
 /******************************************************************************/
+
+int calc_thread(int M, int N, int i, int j) {
+  int threads = omp_get_num_threads();
+  int root = 1;
+  while(root * root < threads)
+    root++;
+
+  int m_length = M / root;
+  int n_length = N / root;
+  int m_pos = i / m_length;
+  int n_pos = j / m_length;
+  return (m_pos + (n_pos * root)) % threads;
+}
 
 int main ( int argc, char *argv[] )
 
@@ -118,7 +132,10 @@ int main ( int argc, char *argv[] )
   double w[M][N];
   double wtime;
 
-  printf ( "\n" );
+  int m_range = (M - 1) / omp_get_num_threads() + 1;
+  int n_range = (N - 1) / omp_get_num_threads() + 1;
+
+  /*  printf ( "\n" );
   printf ( "HEATED_PLATE_OPENMP\n" );
   printf ( "  C/OpenMP version\n" );
   printf ( "  A program to solve for the steady state temperature distribution\n" );
@@ -127,32 +144,40 @@ int main ( int argc, char *argv[] )
   printf ( "  Spatial grid of %d by %d points.\n", M, N );
   printf ( "  The iteration will be repeated until the change is <= %e\n", epsilon ); 
   printf ( "  Number of processors available = %d\n", omp_get_num_procs ( ) );
-  printf ( "  Number of threads =              %d\n", omp_get_max_threads ( ) );
+  printf ( "  Number of threads =              %d\n", omp_get_max_threads ( ) );*/
 /*
   Set the boundary values, which don't change. 
 */
   mean = 0.0;
-
+  
 #pragma omp parallel shared ( w ) private ( i, j )
   {
 #pragma omp for
     for ( i = 1; i < M - 1; i++ )
     {
+      int thread = 0 / n_range;
+      printf("%d S: %p\n", thread, &w[i][0]);
       w[i][0] = 100.0;
     }
 #pragma omp for
     for ( i = 1; i < M - 1; i++ )
     {
+      int thread = (N-1) / n_range;
+      printf("%d S: %p\n", thread, &w[i][N-1]);
       w[i][N-1] = 100.0;
     }
 #pragma omp for
     for ( j = 0; j < N; j++ )
     {
+      int thread = j / n_range;
+      printf("%d S: %p\n", thread, &w[M-1][j]);
       w[M-1][j] = 100.0;
     }
 #pragma omp for
     for ( j = 0; j < N; j++ )
     {
+      int thread = j / n_range;
+      printf("%d S: %p\n", thread, &w[0][j]);
       w[0][j] = 0.0;
     }
 /*
@@ -162,11 +187,18 @@ int main ( int argc, char *argv[] )
 #pragma omp for reduction ( + : mean )
     for ( i = 1; i < M - 1; i++ )
     {
+      int thread_1 = 0 / n_range;
+      int thread_2 = (N-1) / n_range;
+      printf("%d L: %p\n", thread_1, &w[i][0]);
+      printf("%d L: %p\n", thread_2, &w[i][N-1]);
       mean = mean + w[i][0] + w[i][N-1];
     }
 #pragma omp for reduction ( + : mean )
     for ( j = 0; j < N; j++ )
     {
+      int thread = j / n_range;
+      printf("%d L: %p\n", thread, &w[M-1][j]);
+      printf("%d L: %p\n", thread, &w[0][j]);
       mean = mean + w[M-1][j] + w[0][j];
     }
   }
@@ -177,8 +209,8 @@ int main ( int argc, char *argv[] )
   So we interrupt the parallel region, set MEAN, and go back in.
 */
   mean = mean / ( double ) ( 2 * M + 2 * N - 4 );
-  printf ( "\n" );
-  printf ( "  MEAN = %f\n", mean );
+  /* printf ( "\n" );
+     printf ( "  MEAN = %f\n", mean );*/
 /* 
   Initialize the interior solution to the mean value.
 */
@@ -189,7 +221,9 @@ int main ( int argc, char *argv[] )
     {
       for ( j = 1; j < N - 1; j++ )
       {
-        w[i][j] = mean;
+	int thread = j / n_range;
+	printf("%d S: %p\n", &w[i][j]);
+	w[i][j] = mean;
       }
     }
   }
@@ -199,10 +233,10 @@ int main ( int argc, char *argv[] )
 */
   iterations = 0;
   iterations_print = 1;
-  printf ( "\n" );
+  /*  printf ( "\n" );
   printf ( " Iteration  Change\n" );
   printf ( "\n" );
-  wtime = omp_get_wtime ( );
+  wtime = omp_get_wtime ( );*/
 
   diff = epsilon;
 
