@@ -1,3 +1,5 @@
 Trace files contain the sequence of stores S and loads L from the executables in their directory.
 
 Format: thread_id <S/L>: <address>
+
+heated_map/matrix20_64.csv has very interesting patterns. seems like overlapping of different program stages. use trace parameters to figure out where the split is.
