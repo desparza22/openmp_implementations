@@ -1,3 +1,7 @@
+#use "useful.ml";;
+#load "str.cma";;
+
+
 type machine = int array array;;
 type mapping = int array;;
 type thread_page_mapping = {thread_mapping: mapping;
@@ -7,33 +11,58 @@ type access_info = {thread: int; page: int};;
 type access_type = Store | Load;;
 type access = access_type * access_info;;
 
-type remapping_info = {agent: agent; destination: processor};;
+type remapping_info = {agent: int; destination: int};;
 type remapping_type = Thread_remap | Page_remap;;
 type remapping = remapping_type * remapping_info;;
 
 type simulation_step = Access of access | Remapping of remapping;;
 type trace = simulation_step list;;
+exception Conversion_error of string;;
 
 
 let trace_file = "test.txt";;
-let read_trace file =
-  let ic = open_in file in
-  let line = input_line ic in
-  let regex = Str.regexp "^([0-9]+) ([SL]): 0x([0-9]+)$" in
-  if Str.string_match regex line 0
-  then
-    let thread = Str.matched_group 0 in
-    let action = Str.matched_group 1 in
-    let address = Str.matched_group 2 in
-    Printf.printf
-      "thread: %s action: %s address: %s\n"
-      thread
-      action
-      address
-  else
-    Printf.printf "%s is not valid\n" line;;
 
-let () = read_trace trace_file;;
+let rec read_trace_file file =
+  read_trace_chan (open_in file)
+  
+and read_trace_chan chan =
+  try
+    let line = input_line chan in
+    access_of_str line::read_trace_chan chan
+    
+  with e ->
+        match e with
+        | Conversion_error s -> raise e
+        | _ -> []
+
+and access_of_str str =
+  let regex = Str.regexp "^\\([0-9]+\\) \\([SL]\\): \\(0x[0-9A-Fa-f]+\\)$" in
+  if Str.string_match regex str 0
+  then
+    let thread = int_of_string (Str.matched_group 1 str) in
+    let access_type = access_type_of_string (Str.matched_group 2 str) in
+    let address = int_of_string (Str.matched_group 3 str) in
+    (access_type, {thread=thread;page=address})
+  else
+    raise (Conversion_error ("access_of_str: " ^ str))
+
+and access_type_of_string = function
+  | "S" -> Store
+  | "L" -> Load
+  | s -> raise (Conversion_error ("action_of_string: " ^ s));;
+
+let rec string_of_access (access_type, access_info) =
+  (string_of_access_type access_type) ^ " " ^ (string_of_access_info access_info)
+
+and string_of_access_type = function
+    | Store -> "Store"
+    | Load -> "Load"
+
+and string_of_access_info {thread; page} =
+  Printf.sprintf "Thread = %d Addr = %d\n" thread page;;
+  
+
+let () = print_list string_of_access (read_trace_file trace_file);;
 
 (*
 let distance machine processor1 processor2 =
