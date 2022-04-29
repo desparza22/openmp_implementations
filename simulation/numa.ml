@@ -19,9 +19,23 @@ let trace_file = "test.txt";;
 let read_trace file =
   let ic = open_in file in
   let line = input_line ic in
-  ...continue from here, with regex
+  let regex = Str.regexp "^([0-9]+) ([SL]): 0x([0-9]+)$" in
+  if Str.string_match regex line 0
+  then
+    let thread = Str.matched_group 0 in
+    let action = Str.matched_group 1 in
+    let address = Str.matched_group 2 in
+    Printf.printf
+      "thread: %s action: %s address: %s\n"
+      thread
+      action
+      address
+  else
+    Printf.printf "%s is not valid\n" line;;
 
-(* Running simulation *)
+let () = read_trace trace_file;;
+
+(*
 let distance machine processor1 processor2 =
   Array.get (Array.get machine processor1) processor2;;
 
@@ -66,3 +80,4 @@ let rec simulate machine {thread_mapping; page_mapping} = function
                              rest);;
 
 
+ *)
