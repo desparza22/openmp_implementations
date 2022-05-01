@@ -15,19 +15,19 @@ traces: trace8 trace16 trace32 trace64
 
 trace8: export OMP_NUM_THREADS=8
 trace8: dijkstra_openmp 
-	dijkstra_openmp > trace8
+	./dijkstra_openmp > trace8
 
 trace16: export OMP_NUM_THREADS=16
 trace16: dijkstra_openmp
-	dijkstra_openmp > trace16
+	./dijkstra_openmp > trace16
 
 trace32: export OMP_NUM_THREADS=32
 trace32: dijkstra_openmp
-	dijkstra_openmp > trace32
+	./dijkstra_openmp > trace32
 
 trace64: export OMP_NUM_THREADS=64
 trace64: dijkstra_openmp
-	dijkstra_openmp > trace64
+	./dijkstra_openmp > trace64
 
 matrices: matrix_8 matrix_16 matrix_32 matrix_64
 
